@@ -1,0 +1,19 @@
+# AIGIS Engine 
+engines:
+  - extension: ".py"
+    test_types:
+      security:
+        image: "aigis-bandit"
+        command: "bandit -r /src -f json"
+      style:
+        image: "aigis-flake8"
+        command: "flake8 /src"
+
+  - extension: ".java"
+    test_types:
+      unit_test:
+        image: "aigis-junit-runner"
+        command: "mvn test"
+      security:
+        image: "aigis-snyk-java"
+        command: "snyk test"

@@ -1,0 +1,23 @@
+pipeline {
+    agent any
+    stages {
+        stage('Initialize') {
+            steps {
+                echo 'Preparing AIGIS Workspace...'
+                sh 'mkdir -p data reports'
+            }
+        }
+        stage('Run Security Scan') {
+            steps {
+                echo 'Triggering Docker Engine...'
+                // This will be replaced with dynamic 
+                sh 'docker --version'
+            }
+        }
+        stage('Archive Reports') {
+            steps {
+                archiveArtifacts artifacts: 'reports/*.json', allowEmptyArchive: true
+            }
+        }
+    }
+}
