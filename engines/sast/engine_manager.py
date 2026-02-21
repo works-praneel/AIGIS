@@ -15,7 +15,7 @@ def build_report(engine, input_type, test_type, language, status, findings=None,
     }
 
 def save_report(report):
-    output_dir = os.environ.get("OUTPUT_DIR", "/output")
+    output_dir = os.environ["OUTPUT_DIR"]
     os.makedirs(output_dir, exist_ok=True)
 
     path = os.path.join(output_dir, "report.json")

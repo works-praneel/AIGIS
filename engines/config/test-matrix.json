@@ -1,0 +1,15 @@
+{
+  "code": {
+    "python": ["sast"],
+    "java": ["sast"],
+    "kotlin": ["sast"],
+    "cpp": ["sast"],
+    "go": ["sast"]
+  },
+  "url": {
+    "web": ["dast", "vulnerability", "performance"]
+  },
+  "binary": {
+    "generic": ["binary-security"]
+  }
+}

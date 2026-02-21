@@ -1,0 +1,10 @@
+__pycache__/
+output/
+*.pyc
+sample.py
+output/
+go-test/
+*.py
+*.cpp
+*.java
+*.kt
