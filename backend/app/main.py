@@ -1,47 +1,46 @@
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException
-import yaml
+from fastapi import FastAPI, UploadFile, File, BackgroundTasks, HTTPException
+from typing import Dict
+import uuid
 import os
-from .classifier import discover_capabilities
-from .orchestrator import execute_engine
+from .classifier import identify_artifact
+from .orchestrator import run_engine_scan
 
-app = FastAPI()
+app = FastAPI(title="AIGIS Backend - Member 2")
 
-# Utility to get specific test config from YAML
-def get_test_config(file_path, test_choice):
-    mime = magic.Magic(mime=True).from_file(file_path)
-    ext = os.path.splitext(file_path)[1]
+# In-memory status store for tracking long-running scans
+# In Production (Member 1), this would move to Redis.
+job_status_store: Dict[str, dict] = {}
+
+UPLOAD_DIR = "data/uploads"
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+@app.post("/scan/upload")
+async def start_scan(background_tasks: BackgroundTasks, file: UploadFile = File(...)):
+    # 1. Save file locally
+    file_id = str(uuid.uuid4())
+    file_path = os.path.join(UPLOAD_DIR, f"{file_id}_{file.filename}")
+    with open(file_path, "wb") as f:
+        f.write(await file.read())
+
+    # 2. Identify the file (Member 2 Logic)
+    metadata = identify_artifact(file_path)
     
-    with open("../engines_manifest.yaml", "r") as f:
-        manifest = yaml.safe_load(f)
-
-    for engine in manifest.get('engines', []):
-        if engine['extension'] == ext or engine['mime_type'] == mime:
-            return engine['test_types'].get(test_choice)
-    return None
-
-@app.post("/execute")
-async def run_test(filename: str = Form(...), test_choice: str = Form(...)):
-    file_path = f"data/{filename}"
-    
-    if not os.path.exists(file_path):
-        raise HTTPException(status_code=404, detail="File not found. Please upload again.")
-
-    # 1. Fetch the exact Image and Command from YAML
-    config = get_test_config(file_path, test_choice)
-    
-    if not config:
-        raise HTTPException(status_code=400, detail="Invalid test selection for this file type.")
-
-    # 2. Hand off to Orchestrator (Member 1/3's domain)
-    # The command is dynamically pulled: e.g., 'mvn test' or 'bandit -r'
-    logs = execute_engine(
-        image_name=config['image'], 
-        command=config['command'], 
-        file_path=file_path
-    )
-
-    return {
-        "test_performed": test_choice,
-        "engine_used": config['image'],
-        "output": logs
+    # 3. Initialize background job
+    job_id = str(uuid.uuid4())
+    job_status_store[job_id] = {
+        "status": "queued",
+        "file_name": file.filename,
+        "language": metadata["language"],
+        "results": None
     }
+
+    # 4. Trigger Orchestrator in background
+    background_tasks.add_task(run_engine_scan, job_id, file_path, metadata, job_status_store)
+
+    return {"job_id": job_id, "message": "Scan started in background", "metadata": metadata}
+
+@app.get("/scan/status/{job_id}")
+async def get_status(job_id: str):
+    if job_id not in job_status_store:
+        raise HTTPException(status_code=404, detail="Job ID not found")
+    return job_status_store[job_id]
