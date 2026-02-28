@@ -1,10 +1,10 @@
-FROM selenium/standalone-chrome
+FROM ghcr.io/zaproxy/zaproxy:stable
 
 USER root
 
-RUN apt-get update && apt-get install -y python3 python3-pip
+WORKDIR /zap
 
-WORKDIR /app
-COPY runner.py engine_manager.py ./
+COPY engines/dast/runner.py .
+COPY engines/dast/engine_manager.py .
 
-CMD ["python3", "runner.py"]
+ENTRYPOINT ["python3", "runner.py"]
