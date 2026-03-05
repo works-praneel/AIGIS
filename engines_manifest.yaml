@@ -1,0 +1,12 @@
+# engines_manifest.yaml
+languages:
+  Python:
+    engines: ["bandit-security"]
+  Java:
+    engines: ["junit-tester"]
+
+engines:
+  bandit-security:
+    docker_image: "pipeline-inspector-mock" # We will create this mock image next
+  junit-tester:
+    docker_image: "pipeline-inspector-mock"

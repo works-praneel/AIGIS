@@ -1,8 +1,7 @@
-fastapi[all]
-uvicorn
+fastapi
+uvicorn[standard]
 python-multipart
-python-magic
-python-magic-bin; sys_platform == 'win32'
+python-magic-bin==0.4.14
 docker
 pyyaml
-pandas
+requests

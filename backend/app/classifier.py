@@ -1,25 +1,17 @@
-import magic
-import yaml
-import os
+import magic, os
 
-MANIFEST_PATH = "../engines_manifest.yaml"
-
-def discover_capabilities(file_path):
-    mime = magic.Magic(mime=True).from_file(file_path)
-    ext = os.path.splitext(file_path)[1]
+def identify_artifact(file_path: str):
+    try:
+        # Optimized for Windows python-magic-bin
+        m = magic.Magic(mime=True)
+        file_type = m.from_file(file_path)
+    except:
+        file_type = "text/plain"
     
-    if not os.path.exists(MANIFEST_PATH):
-        return {"error": "Manifest file not found"}
-
-    with open(MANIFEST_PATH, "r") as f:
-        manifest = yaml.safe_load(f)
-
-    for engine in manifest.get('engines', []):
-        if engine['extension'] == ext or engine['mime_type'] == mime:
-            return {
-                "language": engine.get('name'),
-                "supported_tests": list(engine['test_types'].keys()),
-                "mime": mime
-            }
-            
-    return {"error": "Unsupported format", "mime": mime}
+    ext = os.path.splitext(file_path)[1].lower()
+    mapping = {".py": "Python", ".java": "Java", ".js": "JavaScript"}
+    
+    return {
+        "language": mapping.get(ext, "Unknown"),
+        "mime": file_type
+    }

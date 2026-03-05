@@ -1,38 +1,46 @@
-import docker
-import yaml
-import os
-
-client = docker.from_env()
+import docker, yaml, os, requests
 
 def run_engine_scan(job_id: str, file_path: str, metadata: dict, store: dict):
-    store[job_id]["status"] = "processing"
-    
-    # Load the "Brain" of the system
-    with open("../engines_manifest.yaml", "r") as f:
-        manifest = yaml.safe_load(f)
-
-    lang = metadata["language"]
-    if lang not in manifest["languages"]:
-        store[job_id]["status"] = "failed"
-        store[job_id]["results"] = f"No engine found for {lang}"
-        return
-
-    # Select the first available engine for that language
-    engine_name = manifest["languages"][lang]["engines"][0]
-    image_name = manifest["engines"][engine_name]["docker_image"]
-
     try:
-        # Run Member 3's Docker Engine
-        # We mount the uploaded file into the container's /src folder
-        container = client.containers.run(
+        store[job_id]["status"] = "scanning"
+        
+        # 1. Load Manifest
+        with open("../engines_manifest.yaml", "r") as f:
+            manifest = yaml.safe_load(f)
+
+        lang = metadata["language"]
+        engine_name = manifest["languages"].get(lang, {}).get("engines", [None])[0]
+        image_name = manifest["engines"][engine_name]["docker_image"]
+
+        # 2. Execute Docker (Member 3 integration)
+        client = docker.from_env()
+        container_log = client.containers.run(
             image=image_name,
             volumes={os.path.abspath(file_path): {'bind': '/src/app_file', 'mode': 'ro'}},
-            detach=False,
             remove=True
-        )
-        
+        ).decode('utf-8')
+
+        store[job_id]["results"] = container_log
+        store[job_id]["status"] = "analyzing_with_ai"
+
+        # 3. AI Remediation (Member 4 integration - Local LLM)
+        remediation = get_ai_remediation(container_log)
+        store[job_id]["remediation"] = remediation
         store[job_id]["status"] = "completed"
-        store[job_id]["results"] = container.decode('utf-8')
+
     except Exception as e:
         store[job_id]["status"] = "failed"
         store[job_id]["results"] = str(e)
+
+def get_ai_remediation(logs):
+    # Calls local Ollama instance
+    try:
+        payload = {
+            "model": "llama3",
+            "prompt": f"Analyze these security logs and provide a fix:\n{logs}",
+            "stream": False
+        }
+        response = requests.post("http://localhost:11434/api/generate", json=payload)
+        return response.json().get("response", "AI could not generate fix.")
+    except:
+        return "AI Remediation Offline (Check Ollama)"
