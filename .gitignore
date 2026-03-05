@@ -1,0 +1,21 @@
+# Python cache
+__pycache__/
+*.pyc
+
+# Generated reports
+report.json
+*_report.json
+
+# Engine output folders
+output/
+
+# Local test files
+*.bin
+
+# Temporary test files
+sample.*
+go-test/
+
+# OS
+.DS_Store
+Thumbs.db
